@@ -16,11 +16,8 @@ app.use(express.json());
 const port = 8288;
 
 app.post('/upload_json', (req, res) => {
-    // console.log(req.body);
-
     fs.writeFile("public/ProjectParameters.json", JSON.stringify(req.body, null, 2), function(err) {
         if(err) { return console.log(err); }
-        // console.log("The file was saved!");
     }); 
 
     res.sendStatus(200);
@@ -28,22 +25,16 @@ app.post('/upload_json', (req, res) => {
 
 // Testing chield spawn + stream
 app.get('/run_simulation', async (req, res) => {
-    res.writeHead(200, {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-        'X-Content-Type-Options': 'nosniff'
-    });
-
     var spawn = require('child_process').spawn;
     let process_env = {
         'env': {
-            'LD_LIBRART_PATH'   : '/home/roigcarlo/Kratos/bin/Debug/libs', 
+            'LD_LIBRARY_PATH'   : '/home/roigcarlo/Kratos/bin/Debug/libs', 
             'PYTHONPATH'        : '/home/roigcarlo/Kratos/bin/Debug'
         },
         'cwd': 'public/'
     }
 
-    var child = spawn('python',['MainKratos.py'],process_env);
+    var child = spawn('python', ['MainKratos.py'], process_env);
 
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', function(data) {
@@ -62,6 +53,33 @@ app.get('/run_simulation', async (req, res) => {
         console.log('Full output of script: ');
     });
 })
+
+app.post('/kratos_lamma', (req, res) => {
+    var spawn = require('child_process').spawn;
+    let process_env = {
+        'cwd': '/home/roigcarlo/Llama'
+    }
+
+    console.log("Got a llama request:", req.body)
+
+    var child = spawn('/home/roigcarlo/Auto1111/venv/bin/python', ['run_llama.py', `${req.body}`], process_env);
+
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', function(data) {
+        console.log(`Got a llama response:\n${data}`);
+        res.write(`${data}`);
+    });
+
+    child.stderr.setEncoding('utf8');
+    child.stderr.on('data', function(data) {
+        console.log("Error:", `${data}`)
+        // res.write(`${data}`);
+    });
+
+    child.on('close', function(code) {
+        res.end();
+    });
+}) 
 
 // Testing strems
 app.get('/stream', async (req, res) => {
